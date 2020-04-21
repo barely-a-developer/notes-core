@@ -1,10 +1,9 @@
 package notes.controllers;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import notes.models.Note;
-import notes.repositories.NoteDao;
+import notes.models.dto.NoteDto;
 import notes.services.NoteService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,44 +13,33 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/notes")
+@RequiredArgsConstructor
 public class NoteController {
 
-    @Autowired
-    private NoteDao noteDao;
-
-    @Autowired
-    private NoteService noteService;
+    private final NoteService noteService;
 
     @PostMapping
-    public ResponseEntity<Note> postNote(@RequestBody Note note) {
-        return new ResponseEntity<>(noteService.addNote(note), HttpStatus.OK);
+    public ResponseEntity<NoteDto> postNote(@RequestBody NoteDto noteDto) {
+        return new ResponseEntity<>(noteService.addNote(noteDto), HttpStatus.OK);
     }
 
     @GetMapping
-    public ResponseEntity<List<Note>> getNotes() {
-        List<Note> noteList = noteService.getNotes();
+    public ResponseEntity<List<NoteDto>> getNotes() {
+        List<NoteDto> noteList = noteService.getNotes();
         return new ResponseEntity<>(noteList, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Note> getNote(@PathVariable(value = "id") Long id) {
+    public ResponseEntity<NoteDto> getNote(@PathVariable(value = "id") Long id) {
         return noteService.getNote(id)
                 .map(note -> new ResponseEntity<>(note, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PatchMapping(value = "/{id}")
-    public ResponseEntity<Note> patchNote(@PathVariable(value = "id") Long id, @RequestBody Note note) {
-
-        if (note.getId() == null) {
-            note.setId(id);
-
-        } else if (!note.getId().equals(id)) {
-            log.error("ID discrepancy during update");
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        return noteService.updateNote(note)
+    public ResponseEntity<NoteDto> patchNote(@PathVariable(value = "id") Long id, @RequestBody NoteDto noteDto) {
+        noteDto.setId(id);
+        return noteService.updateNote(noteDto)
                 .map(updatedNote -> new ResponseEntity<>(updatedNote, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

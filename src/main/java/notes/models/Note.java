@@ -16,9 +16,9 @@ public class Note {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    String message;
+    private String message;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
-    Date createdDate;
+    private Date createdDate;
 }

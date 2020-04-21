@@ -1,70 +1,67 @@
 package notes.services;
 
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import notes.models.Note;
+import notes.models.dto.NoteDto;
 import notes.repositories.NoteDao;
-import org.springframework.beans.factory.annotation.Autowired;
+import notes.services.translators.NoteTranslator;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static notes.services.translators.NoteTranslator.*;
+import static notes.services.translators.NoteTranslator.enrichNoteWithNoteDto;
+import static notes.services.translators.NoteTranslator.translateNoteToNoteDto;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NoteService {
 
-    @Autowired
-    private NoteDao noteDao;
+    private final NoteDao noteDao;
 
-    public Optional<Note> getNote(@NonNull Long id) {
-
+    public Optional<NoteDto> getNote(Long id) {
         log.info("Getting Note with ID [{}]", id);
-
         Optional<Note> noteOptional = noteDao.findById(id);
-
-        noteOptional.ifPresentOrElse(note -> log.info("Found Note with ID [{}]", id),
-                () -> log.info("Could not find Note with ID [{}]", id));
-
-        return noteOptional;
+        if (noteOptional.isPresent()) {
+            log.info("Found Note with ID [{}]", id);
+        } else {
+            log.info("Could not find Note with ID [{}]", id);
+        }
+        return noteOptional.map(NoteTranslator::translateNoteToNoteDto);
     }
 
-    public List<Note> getNotes() {
-
+    public List<NoteDto> getNotes() {
         log.info("Getting all the Notes");
-
         List<Note> noteList = noteDao.findAll();
-
-        log.info("Returning {} Notes", noteList.size());
-
-        return noteList;
+        log.info("Found {} Notes", noteList.size());
+        return noteList.stream().map(NoteTranslator::translateNoteToNoteDto).collect(Collectors.toList());
     }
 
-    public Note addNote(Note note) {
-
+    public NoteDto addNote(NoteDto noteDto) {
         log.info("Adding new note");
-
+        Note note = newNoteFromNoteDto(noteDto);
+        // Make sure a new one will be created and not an existing one updated
         note.setId(null);
         Note newNote = noteDao.save(note);
-
         log.info("Added Note with ID [{}]", newNote.getId());
-
-        return newNote;
+        return translateNoteToNoteDto(newNote);
     }
 
-    public Optional<Note> updateNote(Note note) {
-        Long id = note.getId();
-
+    public Optional<NoteDto> updateNote(NoteDto noteDto) {
+        Long id = noteDto.getId();
         log.info("Updating Note with ID [{}]", id);
-
         Optional<Note> noteOptional = noteDao.findById(id);
-
         if (noteOptional.isPresent()) {
+            Note note = noteOptional.get();
+            enrichNoteWithNoteDto(note, noteDto);
             Note updatedNote = noteDao.save(note);
             log.info("Updated Note with ID [{}]", id);
-            // TODO CreatedDate returns null after update, but is OK in DB
-            return Optional.of(updatedNote);
+            return Optional.of(translateNoteToNoteDto(updatedNote));
         } else {
             log.info("Could not find to update Note with ID [{}]", id);
             return Optional.empty();
