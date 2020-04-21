@@ -1,8 +1,6 @@
 package notes.models;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -12,8 +10,6 @@ import java.util.Date;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Note {
 
     @Id

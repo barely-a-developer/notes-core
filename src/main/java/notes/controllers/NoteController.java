@@ -7,7 +7,6 @@ import notes.services.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,9 +30,6 @@ public class NoteController {
     @GetMapping
     public ResponseEntity<List<Note>> getNotes() {
         List<Note> noteList = noteService.getNotes();
-        if (CollectionUtils.isEmpty(noteList)) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
         return new ResponseEntity<>(noteList, HttpStatus.OK);
     }
 
