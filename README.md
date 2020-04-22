@@ -1,5 +1,7 @@
 # notes-backend
 
+Join the Discord server if you want to collaborate: https://discord.gg/CcsTmy
+
 
 Example request with HTTPie for searching and pagination (all params are optional):
 ```
