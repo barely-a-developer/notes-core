@@ -7,6 +7,8 @@ import notes.models.dto.NoteDto;
 import notes.repositories.NoteDao;
 import notes.services.translators.NoteTranslator;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,8 +16,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static notes.services.translators.NoteTranslator.*;
-import static notes.services.translators.NoteTranslator.enrichNoteWithNoteDto;
-import static notes.services.translators.NoteTranslator.translateNoteToNoteDto;
 
 @Slf4j
 @Service
@@ -35,11 +35,18 @@ public class NoteService {
         return noteOptional.map(NoteTranslator::translateNoteToNoteDto);
     }
 
-    public List<NoteDto> getNotes() {
+    public List<NoteDto> getNotes(Pageable pageable) {
         log.info("Getting all the Notes");
-        List<Note> noteList = noteDao.findAll();
-        log.info("Found {} Notes", noteList.size());
-        return noteList.stream().map(NoteTranslator::translateNoteToNoteDto).collect(Collectors.toList());
+        List<Note> noteList;
+        Page<Note> page = noteDao.findAll(pageable);
+        if (page.hasContent()) {
+            noteList = page.getContent();
+            log.info("Found {} Notes", noteList.size());
+            return noteList.stream().map(NoteTranslator::translateNoteToNoteDto).collect(Collectors.toList());
+        } else {
+            log.info("Notes not found");
+            return List.of();
+        }
     }
 
     public NoteDto addNote(NoteDto noteDto) {

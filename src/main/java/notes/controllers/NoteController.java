@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import notes.models.dto.NoteDto;
 import notes.services.NoteService;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +25,8 @@ public class NoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<NoteDto>> getNotes() {
-        List<NoteDto> noteList = noteService.getNotes();
+    public ResponseEntity<List<NoteDto>> getNotes(Pageable pageable) {
+        List<NoteDto> noteList = noteService.getNotes(pageable);
         return new ResponseEntity<>(noteList, HttpStatus.OK);
     }
 
