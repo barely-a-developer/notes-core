@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>notes</groupId>
-	<artifactId>notes-backend</artifactId>
+	<artifactId>notes-core</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>notes-backend</name>
-	<description>notes-backend</description>
+	<name>notes-core</name>
+	<description>notes-core</description>
 
 	<properties>
 		<java.version>11</java.version>
