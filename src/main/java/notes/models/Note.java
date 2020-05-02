@@ -5,7 +5,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -21,4 +23,7 @@ public class Note {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Date createdDate;
+
+    @OneToMany(fetch=FetchType.EAGER, cascade=CascadeType.ALL )
+    private List<Attachment> attachments = new ArrayList<>();
 }

@@ -51,6 +51,7 @@ public class NoteService {
 
     public NoteDto addNote(NoteDto noteDto) {
         log.info("Adding new note");
+        log.debug(noteDto.toString());
         Note note = newNoteFromNoteDto(noteDto);
         // Make sure a new one will be created and not an existing one updated
         note.setId(null);
