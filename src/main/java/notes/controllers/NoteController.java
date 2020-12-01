@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/notes")
 @RequiredArgsConstructor
@@ -20,25 +19,24 @@ public class NoteController {
     private final NoteService noteService;
 
     @PostMapping
-    public ResponseEntity<NoteDto> postNote(@RequestBody NoteDto noteDto) {
-        return new ResponseEntity<>(noteService.addNote(noteDto), HttpStatus.OK);
+    public NoteDto postNote(@RequestBody NoteDto noteDto) {
+        return noteService.addNote(noteDto);
     }
 
     @GetMapping
-    public ResponseEntity<List<NoteDto>> getNotes(Pageable pageable) {
-        List<NoteDto> noteList = noteService.getNotes(pageable);
-        return new ResponseEntity<>(noteList, HttpStatus.OK);
+    public List<NoteDto> getNotes(Pageable pageable) {
+        return noteService.getNotes(pageable);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<NoteDto> getNote(@PathVariable(value = "id") Long id) {
+    public ResponseEntity<NoteDto> getNote(@PathVariable("id") Long id) {
         return noteService.getNote(id)
                 .map(note -> new ResponseEntity<>(note, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PatchMapping(value = "/{id}")
-    public ResponseEntity<NoteDto> patchNote(@PathVariable(value = "id") Long id, @RequestBody NoteDto noteDto) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<NoteDto> patchNote(@PathVariable("id") Long id, @RequestBody NoteDto noteDto) {
         noteDto.setId(id);
         return noteService.updateNote(noteDto)
                 .map(updatedNote -> new ResponseEntity<>(updatedNote, HttpStatus.OK))
@@ -47,9 +45,8 @@ public class NoteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteNote(@PathVariable("id") Long id) {
-        if (noteService.deleteNote(id)) {
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return  noteService.deleteNote(id) ?
+                new ResponseEntity<>(HttpStatus.OK) :
+                new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

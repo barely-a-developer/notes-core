@@ -12,6 +12,8 @@ public class NoteTranslator {
     public Note newNoteFromNoteDto(NoteDto noteDto) {
         Note note = new Note();
         enrichNoteWithNoteDto(note, noteDto);
+        // Make sure a new one will be created and not an existing one updated
+        note.setId(null);
         return note;
     }
 

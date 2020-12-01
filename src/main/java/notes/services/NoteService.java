@@ -25,7 +25,7 @@ public class NoteService {
     private final NoteDao noteDao;
 
     public Optional<NoteDto> getNote(Long id) {
-        log.info("Getting Note with ID [{}]", id);
+        log.debug("Getting Note with ID [{}]", id);
         Optional<Note> noteOptional = noteDao.findById(id);
         if (noteOptional.isPresent()) {
             log.info("Found Note with ID [{}]", id);
@@ -36,7 +36,7 @@ public class NoteService {
     }
 
     public List<NoteDto> getNotes(Pageable pageable) {
-        log.info("Getting all the Notes");
+        log.debug("Getting all the Notes");
         List<Note> noteList;
         Page<Note> page = noteDao.findAll(pageable);
         if (page.hasContent()) {
@@ -50,14 +50,12 @@ public class NoteService {
     }
 
     public NoteDto addNote(NoteDto noteDto) {
-        log.info("Adding new note");
+        log.debug("Adding new note");
         log.debug(noteDto.toString());
-        Note note = newNoteFromNoteDto(noteDto);
-        // Make sure a new one will be created and not an existing one updated
-        note.setId(null);
-        Note newNote = noteDao.save(note);
-        log.info("Added Note with ID [{}]", newNote.getId());
-        return translateNoteToNoteDto(newNote);
+        Note newNote = newNoteFromNoteDto(noteDto);
+        Note savedNote = noteDao.save(newNote);
+        log.info("Added Note with ID [{}]", savedNote.getId());
+        return translateNoteToNoteDto(savedNote);
     }
 
     public Optional<NoteDto> updateNote(NoteDto noteDto) {
@@ -77,7 +75,7 @@ public class NoteService {
     }
 
     public boolean deleteNote(Long id) {
-        log.info("Deleting Note with ID [{}]", id);
+        log.debug("Deleting Note with ID [{}]", id);
         try {
             noteDao.deleteById(id);
             log.info("Deleted Note with ID [{}]", id);
