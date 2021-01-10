@@ -25,5 +25,9 @@ public class Note {
     private Date createdDate;
 
     @OneToMany(fetch=FetchType.EAGER, cascade=CascadeType.ALL )
-    private List<Attachment> attachments = new ArrayList<>();
+    @OrderBy("typeIndex")
+    private List<Attachment> attachmentList = new ArrayList<>();
+
+    private String userId;
+
 }

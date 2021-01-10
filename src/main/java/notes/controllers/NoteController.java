@@ -1,52 +1,125 @@
 package notes.controllers;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import notes.models.dto.NoteDto;
+import notes.converters.NoteConverter;
+import notes.dto.NoteGetDto;
+import notes.dto.NoteSaveDto;
+import notes.exceptions.NoteNotFoundException;
+import notes.models.Note;
 import notes.services.NoteService;
+import notes.utils.NoteSecurity;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import javax.validation.Valid;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+
 @RestController
-@RequestMapping("/notes")
 @RequiredArgsConstructor
 public class NoteController {
 
     private final NoteService noteService;
+    private final NoteConverter noteConverter;
 
-    @PostMapping
-    public NoteDto postNote(@RequestBody NoteDto noteDto) {
-        return noteService.addNote(noteDto);
+    private static final String CLAIM_UID = "uid";
+
+    @PostMapping("/notes/")
+    @PreAuthorize("hasAuthority('SCOPE_notes:create')")
+    public NoteGetDto postNote(
+            @RequestBody @NonNull @Valid NoteSaveDto noteSaveDto,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        Note note = noteConverter.newEntityFromDto(noteSaveDto, jwt.getClaimAsString(CLAIM_UID));
+        Note savedNote = noteService.addNote(note);
+        return noteConverter.convertEntityToDto(savedNote);
     }
 
-    @GetMapping
-    public List<NoteDto> getNotes(Pageable pageable) {
-        return noteService.getNotes(pageable);
+    @GetMapping("/notes/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_notes:read')")
+    public ResponseEntity<NoteGetDto> getNote(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        try {
+            Note note = noteService.getNote(id);
+            NoteSecurity.isAuthorizedToAccessUserNotes(note.getUserId(), jwt);
+
+            NoteGetDto noteGetDto = noteConverter.convertEntityToDto(note);
+            return new ResponseEntity<>(noteGetDto, OK);
+        } catch (NoteNotFoundException ex) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<NoteDto> getNote(@PathVariable("id") Long id) {
-        return noteService.getNote(id)
-                .map(note -> new ResponseEntity<>(note, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    @GetMapping("/notes/")
+    @PreAuthorize("hasAuthority('SCOPE_notes:read')")
+    public List<NoteGetDto> getAllNotes(
+            Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        NoteSecurity.isAuthorizedToAccessAllNotes(jwt);
+
+        List<Note> noteList = noteService.getNotes(pageable);
+        return noteConverter.convertEntityToDto(noteList);
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<NoteDto> patchNote(@PathVariable("id") Long id, @RequestBody NoteDto noteDto) {
-        noteDto.setId(id);
-        return noteService.updateNote(noteDto)
-                .map(updatedNote -> new ResponseEntity<>(updatedNote, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    @GetMapping("/users/{userId}/notes/")
+    @PreAuthorize("hasAuthority('SCOPE_notes:read')")
+    public List<NoteGetDto> getUserNotes(
+            @PathVariable("userId") String userId,
+            Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        NoteSecurity.isAuthorizedToAccessUserNotes(userId, jwt);
+
+        List<Note> noteList = noteService.getNotes(userId, pageable);
+        return noteConverter.convertEntityToDto(noteList);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteNote(@PathVariable("id") Long id) {
-        return  noteService.deleteNote(id) ?
-                new ResponseEntity<>(HttpStatus.OK) :
-                new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    @PutMapping("/notes/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_notes:update')")
+    public ResponseEntity<NoteGetDto> putNote(
+            @PathVariable("id") Long id,
+            @RequestBody @NonNull @Valid NoteSaveDto noteSaveDto,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        try {
+            noteSaveDto.setId(id);
+            Note note = noteService.getNote(id);
+            NoteSecurity.isAuthorizedToAccessUserNotes(note.getUserId(), jwt);
+
+            noteConverter.enrichEntityWithDto(note, noteSaveDto);
+            Note updatedNote = noteService.updateNote(note);
+            NoteGetDto updatedNoteGetDto = noteConverter.convertEntityToDto(updatedNote);
+            return new ResponseEntity<>(updatedNoteGetDto, OK);
+        } catch (NoteNotFoundException ex) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
+    }
+
+    @DeleteMapping("/notes/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_notes:delete')")
+    public ResponseEntity<String> deleteNote(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        try {
+            Note note = noteService.getNote(id);
+            NoteSecurity.isAuthorizedToAccessUserNotes(note.getUserId(), jwt);
+
+            noteService.deleteNote(id);
+            return new ResponseEntity<>(OK);
+        } catch (NoteNotFoundException ex) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
     }
 }

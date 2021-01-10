@@ -1,11 +1,11 @@
 package notes.services;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import notes.exceptions.NoteNotFoundException;
 import notes.models.Note;
-import notes.models.dto.NoteDto;
 import notes.repositories.NoteDao;
-import notes.services.translators.NoteTranslator;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,9 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static notes.services.translators.NoteTranslator.*;
 
 @Slf4j
 @Service
@@ -24,65 +21,76 @@ public class NoteService {
 
     private final NoteDao noteDao;
 
-    public Optional<NoteDto> getNote(Long id) {
+    public Note getNote(@NonNull Long id) throws NoteNotFoundException {
         log.debug("Getting Note with ID [{}]", id);
         Optional<Note> noteOptional = noteDao.findById(id);
         if (noteOptional.isPresent()) {
             log.info("Found Note with ID [{}]", id);
+            return noteOptional.get();
         } else {
             log.info("Could not find Note with ID [{}]", id);
+            throw new NoteNotFoundException();
         }
-        return noteOptional.map(NoteTranslator::translateNoteToNoteDto);
     }
 
-    public List<NoteDto> getNotes(Pageable pageable) {
-        log.debug("Getting all the Notes");
+    public List<Note> getNotes(@NonNull Pageable pageable) {
+        log.debug("Getting Notes");
         List<Note> noteList;
         Page<Note> page = noteDao.findAll(pageable);
         if (page.hasContent()) {
             noteList = page.getContent();
             log.info("Found {} Notes", noteList.size());
-            return noteList.stream().map(NoteTranslator::translateNoteToNoteDto).collect(Collectors.toList());
+            return noteList;
         } else {
             log.info("Notes not found");
             return List.of();
         }
     }
 
-    public NoteDto addNote(NoteDto noteDto) {
-        log.debug("Adding new note");
-        log.debug(noteDto.toString());
-        Note newNote = newNoteFromNoteDto(noteDto);
-        Note savedNote = noteDao.save(newNote);
-        log.info("Added Note with ID [{}]", savedNote.getId());
-        return translateNoteToNoteDto(savedNote);
-    }
-
-    public Optional<NoteDto> updateNote(NoteDto noteDto) {
-        Long id = noteDto.getId();
-        log.info("Updating Note with ID [{}]", id);
-        Optional<Note> noteOptional = noteDao.findById(id);
-        if (noteOptional.isPresent()) {
-            Note note = noteOptional.get();
-            enrichNoteWithNoteDto(note, noteDto);
-            Note updatedNote = noteDao.save(note);
-            log.info("Updated Note with ID [{}]", id);
-            return Optional.of(translateNoteToNoteDto(updatedNote));
-        } else {
-            log.info("Could not find to update Note with ID [{}]", id);
-            return Optional.empty();
+    public List<Note> getNotes(@NonNull String userId, @NonNull Pageable pageable) {
+        log.debug("Getting Notes");
+        List<Note> noteList;
+        Page<Note> page = noteDao.findByUserId(userId, pageable);
+        if (page.hasContent()) {
+            noteList = page.getContent();
+            log.info("Found {} Notes", noteList.size());
+            return noteList;
         }
+        log.info("Notes not found");
+        return List.of();
     }
 
-    public boolean deleteNote(Long id) {
+    public Note addNote(@NonNull Note note) {
+        log.debug("Adding new Note");
+        log.debug(note.toString());
+        if (note.getId() != null) {
+            throw new IllegalArgumentException("Note ID not null while creating a new Note");
+        }
+        Note savedNote = noteDao.save(note);
+        log.info("Added Note with ID [{}]", savedNote.getId());
+        return savedNote;
+    }
+
+    public Note updateNote(@NonNull Note note) {
+        log.debug(note.toString());
+        if (note.getId() == null) {
+            throw new IllegalArgumentException("Note ID is null while updating an existing Note");
+        }
+        Long id = note.getId();
+        log.debug("Updating Note with ID [{}]", id);
+        Note updatedNote = noteDao.save(note);
+        log.info("Updated Note with ID [{}]", id);
+        return updatedNote;
+    }
+
+    public void deleteNote(@NonNull Long id) throws NoteNotFoundException {
         log.debug("Deleting Note with ID [{}]", id);
         try {
             noteDao.deleteById(id);
             log.info("Deleted Note with ID [{}]", id);
-            return true;
         } catch (EmptyResultDataAccessException ex) {
             log.info("Could not find to delete Note with ID [{}]", id);
-            return false;
+            throw new NoteNotFoundException();
         }
     }
 
